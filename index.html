@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>链上存证小助手</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+
+<body>
+    <header class="app-header">
+        <h1>链上存证小助手</h1>
+        <button id="btnConnect" class="btn primary">连接钱包</button>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>1. 选择文件并计算哈希 (SHA-256)</h2>
+            <div class="row">
+                <input type="file" id="fileInput" />
+                <button id="btnHash" class="btn" disabled>计算哈希</button>
+            </div>
+            <div class="mono" id="hashOutput">未计算</div>
+        </section>
+
+        <section class="card">
+            <h2>2. 存证上链</h2>
+            <div class="row">
+                <button id="btnNotarize" class="btn success" disabled>开始存证</button>
+            </div>
+            <div id="txStatus" class="status"></div>
+        </section>
+
+        <section class="card">
+            <h2>3. 验证存证</h2>
+            <div class="row">
+                <input type="text" id="verifyHash" class="input" placeholder="请输入文件哈希 (hex)" />
+                <button id="btnVerify" class="btn">验证</button>
+            </div>
+            <div id="verifyResult" class="status"></div>
+        </section>
+
+        <section class="card note">
+            <h3>说明</h3>
+            <ul>
+                <li>文件本身不会上传，浏览器本地计算哈希，仅哈希上链。</li>
+                <li>当前示例默认使用 Goerli 测试网，请在钱包中切换对应网络。</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <span id="networkInfo">未连接</span>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
