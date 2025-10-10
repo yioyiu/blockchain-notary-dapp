@@ -1,31 +1,5 @@
-// Config: replace with your deployed contract address and ABI
-const CONFIG = {
-    expectedChainId: 11155111, // Sepolia testnet
-    contractAddress: "0x0000000000000000000000000000000000000000", // TODO: replace after deploy
-    abi: [
-        {
-            "inputs": [{ "internalType": "string", "name": "documentHash", "type": "string" }],
-            "name": "notarizeDocument", "outputs": [], "stateMutability": "nonpayable", "type": "function"
-        },
-        {
-            "inputs": [{ "internalType": "string", "name": "documentHash", "type": "string" }],
-            "name": "verifyDocument", "outputs": [{ "internalType": "address", "name": "owner", "type": "address" }],
-            "stateMutability": "view", "type": "function"
-        },
-        {
-            "inputs": [{ "internalType": "string", "name": "documentHash", "type": "string" }],
-            "name": "getRecord", "outputs": [{ "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "uint256", "name": "timestamp", "type": "uint256" }],
-            "stateMutability": "view", "type": "function"
-        },
-        {
-            "anonymous": false, "inputs": [
-                { "indexed": true, "internalType": "address", "name": "owner", "type": "address" },
-                { "indexed": true, "internalType": "string", "name": "documentHash", "type": "string" },
-                { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256" }
-            ], "name": "DocumentNotarized", "type": "event"
-        }
-    ]
-};
+// 配置从外部文件加载
+// 注意：config.js 必须在 app.js 之前加载
 
 let provider, signer, contract;
 let currentHashHex = "";
@@ -68,24 +42,23 @@ async function connectWallet() {
     const network = await provider.getNetwork();
     $("networkInfo").textContent = `网络: ${network.name} (chainId=${network.chainId})`;
     if (CONFIG.expectedChainId && network.chainId !== CONFIG.expectedChainId) {
-        throw new Error(`请切换到 Sepolia (chainId=${CONFIG.expectedChainId})`);
+        throw new Error(`请切换到 ${CONFIG.networkName} (chainId=${CONFIG.expectedChainId})`);
     }
 
-    contract = new ethers.Contract(0xA51f1eF2aa212c6eBDf4cba6Dc9b51ceC2Ff100C, CONFIG.abi, signer);
+    contract = new ethers.Contract(CONFIG.contractAddress, CONFIG.abi, signer);
     $("btnConnect").textContent = "已连接";
 }
-
-const SEPOLIA_CHAIN_HEX = '0xaa36a7'; // 11155111
 
 async function ensureOnExpectedNetwork(eth) {
     try {
         const currentHex = await eth.request({ method: 'eth_chainId' });
-        if (CONFIG.expectedChainId && currentHex !== SEPOLIA_CHAIN_HEX) {
+        const expectedHex = '0x' + CONFIG.expectedChainId.toString(16);
+        if (CONFIG.expectedChainId && currentHex !== expectedHex) {
             // Try switch first
             try {
                 await eth.request({
                     method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: SEPOLIA_CHAIN_HEX }]
+                    params: [{ chainId: expectedHex }]
                 });
             } catch (switchErr) {
                 // Unrecognized chain in wallet → add then switch
@@ -94,18 +67,18 @@ async function ensureOnExpectedNetwork(eth) {
                         await eth.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
-                                chainId: SEPOLIA_CHAIN_HEX,
-                                chainName: 'Sepolia test network',
-                                nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
-                                rpcUrls: ['https://rpc.sepolia.org'],
-                                blockExplorerUrls: ['https://sepolia.etherscan.io']
+                                chainId: expectedHex,
+                                chainName: CONFIG.networkName + ' test network',
+                                nativeCurrency: { name: CONFIG.networkName + 'ETH', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: [CONFIG.etherscanBaseUrl.replace('etherscan.io', 'rpc.sepolia.org')],
+                                blockExplorerUrls: [CONFIG.etherscanBaseUrl]
                             }]
                         });
                     } catch (addErr) {
-                        throw new Error('请在钱包中添加/切换到 Sepolia 网络后重试');
+                        throw new Error(`请在钱包中添加/切换到 ${CONFIG.networkName} 网络后重试`);
                     }
                 } else {
-                    throw new Error('请在钱包中切换到 Sepolia 网络后重试');
+                    throw new Error(`请在钱包中切换到 ${CONFIG.networkName} 网络后重试`);
                 }
             }
         }
@@ -123,8 +96,7 @@ async function computeSHA256Hex(file) {
 }
 
 function toEtherscanTxUrl(txHash) {
-    // Sepolia; adjust for other networks as needed
-    return `https://sepolia.etherscan.io/tx/${txHash}`;
+    return `${CONFIG.etherscanBaseUrl}/tx/${txHash}`;
 }
 
 async function onHashClick() {
