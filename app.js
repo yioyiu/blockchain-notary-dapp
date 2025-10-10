@@ -1,6 +1,6 @@
 // Config: replace with your deployed contract address and ABI
 const CONFIG = {
-    expectedChainId: 5, // Goerli testnet
+    expectedChainId: 11155111, // Sepolia testnet
     contractAddress: "0x0000000000000000000000000000000000000000", // TODO: replace after deploy
     abi: [
         {
@@ -41,16 +41,32 @@ function setStatus(el, message, href) {
     }
 }
 
+function getPreferredEip1193Provider() {
+    const eth = window.ethereum;
+    if (!eth) return null;
+    // If multiple providers are injected, pick MetaMask explicitly
+    if (Array.isArray(eth.providers) && eth.providers.length) {
+        const metaMask = eth.providers.find(p => p && p.isMetaMask);
+        if (metaMask) return metaMask;
+        // fallback to the first provider
+        return eth.providers[0];
+    }
+    // Single provider injected
+    return eth;
+}
+
 async function connectWallet() {
-    if (!window.ethereum) throw new Error("请安装 MetaMask");
-    await window.ethereum.request({ method: 'eth_requestAccounts' });
-    provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
+    const eth = getPreferredEip1193Provider();
+    if (!eth) throw new Error("未检测到以太坊钱包，请安装 MetaMask");
+    // Prefer MetaMask account request if available
+    await eth.request({ method: 'eth_requestAccounts' });
+    provider = new ethers.providers.Web3Provider(eth, 'any');
     signer = provider.getSigner();
 
     const network = await provider.getNetwork();
     $("networkInfo").textContent = `网络: ${network.name} (chainId=${network.chainId})`;
     if (CONFIG.expectedChainId && network.chainId !== CONFIG.expectedChainId) {
-        throw new Error(`请切换到 Goerli (chainId=${CONFIG.expectedChainId})`);
+        throw new Error(`请切换到 Sepolia (chainId=${CONFIG.expectedChainId})`);
     }
 
     contract = new ethers.Contract(CONFIG.contractAddress, CONFIG.abi, signer);
@@ -65,8 +81,8 @@ async function computeSHA256Hex(file) {
 }
 
 function toEtherscanTxUrl(txHash) {
-    // Goerli; adjust for other networks as needed
-    return `https://goerli.etherscan.io/tx/${txHash}`;
+    // Sepolia; adjust for other networks as needed
+    return `https://sepolia.etherscan.io/tx/${txHash}`;
 }
 
 async function onHashClick() {

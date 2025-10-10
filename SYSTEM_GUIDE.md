@@ -5,7 +5,7 @@
 
 ## 一、系统概览
 - **目标**：对任意数字文件计算 SHA-256 哈希并上链存证，随后可通过哈希验证存证者与时间。
-- **架构**：浏览器前端 + MetaMask + 以太坊测试网合约（Goerli）。
+- **架构**：浏览器前端 + MetaMask + 以太坊测试网合约（Sepolia）。
 - **数据边界**：文件不出本地，仅将哈希上链，保护隐私。
 
 ## 二、目录结构与文件职责
@@ -46,7 +46,7 @@
 - **模块 1**：选择文件并计算哈希（`file` 输入 + `计算哈希` 按钮 + 展示区域）。
 - **模块 2**：上链存证（`开始存证` 按钮 + 交易状态/链接展示）。
 - **模块 3**：验证存证（哈希输入 + `验证` 按钮 + 验证结果展示）。
-- **说明卡片**：强调隐私与网络要求（Goerli）。
+- **说明卡片**：强调隐私与网络要求（Sepolia）。
 
 ### 实现要点：
 - 通过 `<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>` 引入 Ethers v5 UMD 版本。
@@ -55,7 +55,7 @@
 ## 五、前端逻辑（app.js）
 
 ### 常量配置 `CONFIG`：
-- `expectedChainId`：默认 `5`（Goerli）。
+- `expectedChainId`：默认 `11155111`（Sepolia）。
 - `contractAddress`：部署完成后替换为你的合约地址。
 - `abi`：包含 `notarizeDocument`、`verifyDocument`、`getRecord` 以及 `DocumentNotarized` 事件定义。
 
@@ -80,7 +80,7 @@
 - 按钮启用/禁用与状态消息更新；错误信息捕获后展示在对应区域。
 
 ### Etherscan 构造：
-- Goerli 交易链接：`https://goerli.etherscan.io/tx/${txHash}`。
+- Sepolia 交易链接：`https://sepolia.etherscan.io/tx/${txHash}`。
 
 ## 六、样式（style.css）
 - **暗色主题** + 渐进式增强：卡片、圆角、边框、阴影、响应式布局。
@@ -92,7 +92,7 @@
 ### 1) 部署合约（Remix + MetaMask）
 - 打开 `contracts/Notary.sol` 代码，复制到 Remix 新文件中。
 - 选择编译器 `0.8.20`（或兼容 0.8.x）。
-- 在 Remix "Deploy & Run" 面板选择 `Injected Provider - MetaMask`，切换到 Goerli。
+- 在 Remix "Deploy & Run" 面板选择 `Injected Provider - MetaMask`，切换到 Sepolia。
 - 部署 `Notary`，复制生成的合约地址（形如 `0x...`）。
 - 可在 Etherscan-Goerli 验证合约源码（可选）。
 
@@ -125,7 +125,7 @@
 ## 九、常见问题（FAQ）
 
 ### Q：为什么验证不到记录？
-**A**：确认使用的是"同一个哈希"（小写十六进制）、"同一条链"（Goerli）与"同一合约地址"。
+**A**：确认使用的是"同一个哈希"（小写十六进制）、"同一条链"（Sepolia）与"同一合约地址"。
 
 ### Q：能否存多次？
 **A**：相同哈希不可重复存证；若要覆盖，需设计新的合约逻辑（不推荐）。
@@ -133,15 +133,15 @@
 ### Q：为何选择字符串作为键？
 **A**：避免在链上做 bytes/hex 转换，前端以字符串传入，简化交互。
 
-### Q：如何获取 Goerli 测试 ETH？
-**A**：使用官方水龙头 https://goerlifaucet.com/ 或 https://faucet.quicknode.com/ethereum/goerli
+### Q：如何获取 Sepolia 测试 ETH？
+**A**：可使用 QuickNode Sepolia Faucet 或 https://sepoliafaucet.com/
 
 ### Q：合约部署失败怎么办？
 **A**：检查 MetaMask 网络设置、账户余额、编译器版本，确保选择正确的网络。
 
 ## 十、关键配置清单
 - `app.js` → `CONFIG.contractAddress`：部署后必须替换。
-- `app.js` → `CONFIG.expectedChainId`：默认 5（Goerli），按需调整。
+- `app.js` → `CONFIG.expectedChainId`：默认 11155111（Sepolia），按需调整。
 - `app.js` → Etherscan 域名：按网络切换（Goerli/Sepolia/主网）。
 
 ## 十一、扩展与演进方向
@@ -154,7 +154,7 @@
 ## 十二、技术栈总结
 | 组件 | 技术选择 | 作用 |
 |------|----------|------|
-| 区块链平台 | Ethereum Goerli Testnet | 免费测试环境 |
+| 区块链平台 | Ethereum Sepolia Testnet | 社区推荐测试环境 |
 | 智能合约语言 | Solidity ^0.8.20 | 以太坊标准 |
 | 合约开发环境 | Remix IDE | 浏览器内开发 |
 | 前端框架 | 纯 HTML + JavaScript | 简单直接 |
