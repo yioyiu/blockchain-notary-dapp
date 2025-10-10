@@ -61,6 +61,8 @@ async function connectWallet() {
     // Prefer MetaMask account request if available
     await eth.request({ method: 'eth_requestAccounts' });
     provider = new ethers.providers.Web3Provider(eth, 'any');
+    // Ensure network is Sepolia; attempt auto-switch/add if needed
+    await ensureOnExpectedNetwork(eth);
     signer = provider.getSigner();
 
     const network = await provider.getNetwork();
@@ -69,8 +71,48 @@ async function connectWallet() {
         throw new Error(`请切换到 Sepolia (chainId=${CONFIG.expectedChainId})`);
     }
 
-    contract = new ethers.Contract(CONFIG.contractAddress, CONFIG.abi, signer);
+    contract = new ethers.Contract(0xA51f1eF2aa212c6eBDf4cba6Dc9b51ceC2Ff100C, CONFIG.abi, signer);
     $("btnConnect").textContent = "已连接";
+}
+
+const SEPOLIA_CHAIN_HEX = '0xaa36a7'; // 11155111
+
+async function ensureOnExpectedNetwork(eth) {
+    try {
+        const currentHex = await eth.request({ method: 'eth_chainId' });
+        if (CONFIG.expectedChainId && currentHex !== SEPOLIA_CHAIN_HEX) {
+            // Try switch first
+            try {
+                await eth.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: SEPOLIA_CHAIN_HEX }]
+                });
+            } catch (switchErr) {
+                // Unrecognized chain in wallet → add then switch
+                if (switchErr && switchErr.code === 4902) {
+                    try {
+                        await eth.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: SEPOLIA_CHAIN_HEX,
+                                chainName: 'Sepolia test network',
+                                nativeCurrency: { name: 'SepoliaETH', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://rpc.sepolia.org'],
+                                blockExplorerUrls: ['https://sepolia.etherscan.io']
+                            }]
+                        });
+                    } catch (addErr) {
+                        throw new Error('请在钱包中添加/切换到 Sepolia 网络后重试');
+                    }
+                } else {
+                    throw new Error('请在钱包中切换到 Sepolia 网络后重试');
+                }
+            }
+        }
+    } catch (e) {
+        // Best-effort; surface a friendly message while not blocking the rest if user proceeds
+        throw e;
+    }
 }
 
 async function computeSHA256Hex(file) {
