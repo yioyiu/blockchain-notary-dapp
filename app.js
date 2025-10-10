@@ -112,6 +112,18 @@ async function onHashClick() {
 async function onNotarizeClick() {
     if (!contract) throw new Error("请先连接钱包");
     if (!currentHashHex) throw new Error("请先计算文件哈希");
+    // 预检：如已存证则不再发送交易
+    try {
+        const read = new ethers.Contract(CONFIG.contractAddress, CONFIG.abi, provider);
+        const [owner] = await read.getRecord(currentHashHex);
+        if (owner && owner !== ethers.constants.AddressZero) {
+            setStatus($("txStatus"), "该哈希已存证，无需重复上链。");
+            return;
+        }
+    } catch (_) {
+        // 忽略只读预检错误，继续后续流程
+    }
+
     setStatus($("txStatus"), "发送交易中...");
     try {
         const tx = await contract.notarizeDocument(currentHashHex);
@@ -119,7 +131,17 @@ async function onNotarizeClick() {
         const receipt = await tx.wait();
         setStatus($("txStatus"), `已确认 - 区块 ${receipt.blockNumber}`, toEtherscanTxUrl(tx.transactionHash));
     } catch (err) {
-        setStatus($("txStatus"), `交易失败：${err.message || err}`);
+        // 友好化常见错误提示
+        const msg = (err && err.message) ? err.message : String(err);
+        if (msg.includes('ALREADY_NOTARIZED')) {
+            setStatus($("txStatus"), "交易失败：该哈希已存证，无需重复上链。");
+        } else if (msg.includes('UNPREDICTABLE_GAS_LIMIT')) {
+            setStatus($("txStatus"), "交易失败：无法估算 Gas，可能因参数或网络问题。请稍后重试。");
+        } else if (msg.toLowerCase().includes('user rejected')) {
+            setStatus($("txStatus"), "交易已取消：用户拒绝签名。");
+        } else {
+            setStatus($("txStatus"), `交易失败：${msg}`);
+        }
     }
 }
 
