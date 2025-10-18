@@ -122,6 +122,17 @@ body {
     color: var(--muted);
 }
 
+.status a {
+    color: var(--primary);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.status a:hover {
+    color: var(--text);
+    text-decoration: none;
+}
+
 .footer {
     max-width: 880px;
     margin: 24px auto;
