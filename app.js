@@ -1,16 +1,24 @@
 // 配置从外部文件加载
 // 注意：config.js 必须在 app.js 之前加载
 
-let provider, signer, contract;
-let currentHashHex = "";
+// 全局变量：存储区块链连接和当前文件哈希
+let provider, signer, contract; // 区块链连接相关
+let currentHashHex = ""; // 当前文件的哈希值
 
-function $(id) { return document.getElementById(id); }
+// 获取页面元素的简化函数
+function $(id) {
+    return document.getElementById(id); // 根据ID获取页面元素
+}
 
+// 设置状态显示的函数
 function setStatus(el, message, href) {
-    if (!el) return;
+    if (!el) return; // 如果元素不存在则退出
+
+    // 如果有链接地址，创建可点击的链接
     if (href) {
         el.innerHTML = `<a href="${href}" target="_blank" rel="noreferrer">${message}</a>`;
     } else {
+        // 否则直接显示文本内容
         el.textContent = message;
     }
 }
@@ -88,10 +96,21 @@ async function ensureOnExpectedNetwork(eth) {
     }
 }
 
+// 计算文件SHA-256哈希值的函数
 async function computeSHA256Hex(file) {
+    // 将文件转换为二进制数据（ArrayBuffer格式）
     const buf = await file.arrayBuffer();
+
+    // 使用浏览器内置的加密API计算SHA-256哈希
+    // crypto.subtle.digest 是异步函数，需要await等待
     const hashBuffer = await crypto.subtle.digest('SHA-256', buf);
+
+    // 将哈希结果从ArrayBuffer转换为普通数组
     const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+    // 将每个字节转换为十六进制字符串
+    // b.toString(16) 转换为16进制，padStart(2,'0') 确保是2位数字
+    // join('') 将所有十六进制字符连接成一个字符串
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
@@ -99,13 +118,27 @@ function toEtherscanTxUrl(txHash) {
     return `${CONFIG.etherscanBaseUrl}/tx/${txHash}`;
 }
 
+// 用户点击"计算哈希"按钮时执行的函数
 async function onHashClick() {
+    // 获取用户选择的文件（files[0]表示第一个文件）
     const file = $("fileInput").files?.[0];
+
+    // 如果没有选择文件，直接退出函数
     if (!file) return;
+
+    // 在界面上显示"计算中..."提示用户正在处理
     setStatus($("hashOutput"), "计算中...");
+
+    // 调用上面的函数计算文件哈希值
     const hex = await computeSHA256Hex(file);
+
+    // 将计算出的哈希值保存到全局变量，供后续存证使用
     currentHashHex = hex;
+
+    // 在界面上显示计算出的哈希值
     setStatus($("hashOutput"), hex);
+
+    // 启用"开始存证"按钮，因为现在有了哈希值可以存证了
     $("btnNotarize").disabled = false;
 }
 
@@ -154,7 +187,25 @@ async function onVerifyClick() {
         const [owner, timestamp] = await read.getRecord(hash);
         if (owner && owner !== ethers.constants.AddressZero) {
             const date = new Date(Number(timestamp) * 1000);
-            setStatus($("verifyResult"), `已存证：${owner} 于 ${date.toLocaleString()}`);
+
+            // 查询存证事件以获取区块号
+            try {
+                const filter = read.filters.DocumentNotarized(owner, hash);
+                const events = await read.queryFilter(filter);
+
+                if (events.length > 0) {
+                    const event = events[0];
+                    const blockNumber = event.blockNumber;
+                    const blockUrl = `${CONFIG.etherscanBaseUrl}/block/${blockNumber}`;
+                    setStatus($("verifyResult"), `已存证：${owner} 于 ${date.toLocaleString()}`, blockUrl);
+                } else {
+                    // 如果找不到事件，仍然显示基本信息
+                    setStatus($("verifyResult"), `已存证：${owner} 于 ${date.toLocaleString()}`);
+                }
+            } catch (eventErr) {
+                // 如果查询事件失败，仍然显示基本信息
+                setStatus($("verifyResult"), `已存证：${owner} 于 ${date.toLocaleString()}`);
+            }
         } else {
             setStatus($("verifyResult"), "未找到该文件的存证记录");
         }
@@ -171,10 +222,15 @@ function init() {
         } catch (e) { alert(e.message || e); }
     });
 
+    // 当用户选择文件时触发的事件
     $("fileInput").addEventListener('change', () => {
+        // 检查是否选择了文件
+        // files?.length 表示如果files存在且长度大于0，则启用按钮
+        // !($("fileInput").files?.length) 表示没有文件时禁用按钮
         $("btnHash").disabled = !($("fileInput").files?.length);
     });
 
+    // 当用户点击"计算哈希"按钮时触发的事件
     $("btnHash").addEventListener('click', () => onHashClick());
     $("btnNotarize").addEventListener('click', () => onNotarizeClick());
     $("btnVerify").addEventListener('click', () => onVerifyClick());

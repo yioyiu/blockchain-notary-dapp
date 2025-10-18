@@ -22,9 +22,12 @@
         <section class="card">
             <h2>1. 选择文件并计算哈希 (SHA-256)</h2>
             <div class="row">
+                <!-- 文件输入框，type="file" 会显示"选择文件"按钮 -->
                 <input type="file" id="fileInput" />
+                <!-- 计算哈希按钮，初始状态为禁用 -->
                 <button id="btnHash" class="btn" disabled>计算哈希</button>
             </div>
+            <!-- 显示哈希结果的区域，使用等宽字体便于阅读 -->
             <div class="mono" id="hashOutput">未计算</div>
         </section>
 
